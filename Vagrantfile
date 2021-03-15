@@ -37,6 +37,7 @@ Vagrant.configure("2") do |config|
   (1..NUM_WORKERS).each do |i|
     config.vm.define "node#{i}" do |node|
       node.vm.hostname = "node#{i}"
+      node.vm.provision :shell, :inline => "sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config; sudo systemctl restart sshd;", run: "always"
       node.vm.network :private_network, ip: "#{WORKER_IP_BASE}" + i.to_s.rjust(2, '0')
       (1..NUM_DISKS).each do |j|
         node.vm.provider :libvirt do |libvirt|
@@ -60,11 +61,9 @@ Vagrant.configure("2") do |config|
       libvirt.memory = 2048
       libvirt.cpus = 1
     end
+    control.vm.provision :shell, :inline => "sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config; sudo systemctl restart sshd;", run: "always"
     control.vm.provision :shell, :inline => "dnf install epel-release -y"
     control.vm.provision :shell, :inline => "dnf install ansible -y"
-    control.vm.provision :shell, :inline => 'ssh-keygen -f /home/vagrant/.ssh/id_rsa -N ""'
-    control.vm.provision :shell, :inline => "chown -R vagrant: /home/vagrant/.ssh"
-    control.vm.provision :shell, :inline => "cat /home/vagrant/.ssh/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys"
     control.vm.provision :ansible_local do |ansible|
       ansible.playbook = "/vagrant/playbooks/master.yml"
       ansible.install = false
